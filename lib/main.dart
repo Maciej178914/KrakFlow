@@ -19,13 +19,19 @@ class MyApp extends StatelessWidget {
               SizedBox(height: 25),
               Text("Organizacja studiów"),
               SizedBox(height: 25),
+              Text("Masz dziś ${tasks.length} zadania"),
+              SizedBox(height: 16),
               Text("Dzisiejsze zadania"),
-              TaskCard(title: "Projekt Flutter", subtitle: "termin: jutro"),
-              TaskCard(title: "Ćwiczenia z matematyki", subtitle: "termin: dzisiaj"),
-              TaskCard(title: "Przeczytać o widgetach", subtitle: "termin: w tym tygodniu")
+              Expanded(child: ListView.builder(
+                  itemCount: tasks.length,
+                  itemBuilder: (context, index) {
+                    return TaskCard(tasks[index]);
+                    }),
+              )
             ],
           ),
         ),
+
         floatingActionButton: FloatingActionButton(
           onPressed: () {},
           child: Icon(Icons.add),
@@ -35,20 +41,34 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class TaskCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon = Icons.task;
+List<Task> tasks = [
+  Task("Projekt Flutter", "jutro", false, "wysoki"),
+  Task("Ćwiczenia z matematyki", "dzisiaj", false, "niski"),
+  Task("Przeczytać o widgetach", "w tym tygodniu", true, "średni")
+];
 
-  TaskCard({required this.title, required this.subtitle});
+class Task {
+  String title;
+  String deadline;
+  bool done;
+  String priority;
+
+  Task(this.title, this.deadline, this.done, this.priority);
+}
+
+class TaskCard extends StatelessWidget {
+  final Task task;
+
+  TaskCard(this.task);
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        subtitle: Text(subtitle),
+        leading: Icon(Icons.task),
+        title: Text(task.title),
+        subtitle: Text("termin: ${task.deadline} | priorytet: ${task.priority}"),
+        trailing: Icon(task.done ? Icons.check_circle : Icons.radio_button_unchecked),
       ),
     );
   }
