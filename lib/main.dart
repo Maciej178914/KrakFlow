@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const MyApp());
@@ -28,20 +31,15 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Center(
         child: Column(
           children: [
-            Text("KrakFlow"),
-            SizedBox(height: 25),
-            Text("Organizacja studiów"),
-            SizedBox(height: 25),
-            Text("Masz dziś ${tasks.length} zadania"),
-            SizedBox(height: 16),
-            Text("Dzisiejsze zadania"),
+            // Text("KrakFlow"),
+            // SizedBox(height: 25),
+            // Text("Organizacja studiów"),
+            // SizedBox(height: 25),
+            // Text("Masz dziś ${tasks.length} zadania"),
+            // SizedBox(height: 16),
+            // Text("Dzisiejsze zadania"),
             Expanded(
-              child: ListView.builder(
-                itemCount: tasks.length,
-                itemBuilder: (context, index) {
-                  return TaskCard(tasks[index]);
-                },
-              ),
+              child: TaskListScreen()
             ),
           ],
         ),
@@ -56,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           if (newTask != null) {
             setState(() {
-              tasks.add(newTask);
+              // tasks.add(newTask);
             });
           }
         },
@@ -66,11 +64,75 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-List<Task> tasks = [
-  Task("Projekt Flutter", "jutro", false, "wysoki"),
-  Task("Ćwiczenia z matematyki", "dzisiaj", false, "niski"),
-  Task("Przeczytać o widgetach", "w tym tygodniu", true, "średni"),
-];
+final random = Random();
+final priorities = ["niski", "średni", "wysoki"];
+final deadlines = ["2 dni", "1 dzień", "3 dni", "5 dni", "2 tygodnie"];
+
+class TaskApiService {
+  static const String baseUrl = "https://dummyjson.com";
+
+  Future<List<Task>> fetchTasks() async {
+    final response = await http.get(Uri.parse("$baseUrl/todos"));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List todos = data["todos"];
+
+      return todos.map((todo) {
+        return Task(
+            todo["todo"],
+            deadlines[random.nextInt(deadlines.length)],
+            todo["completed"],
+            priorities[random.nextInt(priorities.length)]
+        );
+      }).toList();
+    } else {
+      throw Exception("Błąd pobierania danych");
+    }
+  }
+}
+
+class TaskListScreen extends StatefulWidget {
+  const TaskListScreen({super.key});
+
+  @override
+  State<TaskListScreen> createState() => _TaskListScreenState();
+}
+
+class _TaskListScreenState extends State<TaskListScreen> {
+  late Future<List<Task>> tasksFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    tasksFuture = TaskApiService().fetchTasks();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(future: tasksFuture, builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      }
+
+      if (snapshot.hasError) {
+        return Center(
+          child: Text("Błąd: ${snapshot.error}"),
+        );
+      }
+
+      final tasks = snapshot.data!;
+
+      return ListView.builder(
+          itemCount: tasks.length,
+          itemBuilder: (context, index) {
+            return TaskCard(tasks[index]);
+          });
+    });
+  }
+}
 
 class Task {
   String title;
